@@ -32,4 +32,4 @@ O programa solicita o nome, vida e ataque de dois monstros. A batalha ocorre em 
 **Resposta:** Um loop infinito ocorre quando a condição do `while` nunca se torna falsa, fazendo o programa rodar para sempre ou travar. Para evitá-lo, devemos garantir que, dentro do corpo do loop, ocorra uma alteração nas variáveis de controle (ex: diminuir o HP do defensor) que leve a condição de parada a ser atingida.
 
 ## 🧑‍💻 Autor
-Desenvolvido por Fábio Gonçalves.
+Desenvolvido por Fábio Anderson Gonçalves.
