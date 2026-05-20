@@ -38,7 +38,7 @@ def main():
 
     print(f"\n🔥 O DUELO COMEÇOU: {nome_monstro1} vs {nome_monstro2}! 🔥\n")
 
-    # 3. Lógica de Turnos (Loop While)
+    # 3. Lógica de Turnos (Loop While) loop principal
     while hp_monstro1 > 0 and hp_monstro2 > 0:
         # Monstro 1 ataca o Monstro 2
         hp_monstro2 = atacar(nome_monstro1, ataque_monstro1, nome_monstro2, hp_monstro2)
