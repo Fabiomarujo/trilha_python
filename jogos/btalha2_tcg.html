@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>TCG Arena - Avatar Selection</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: white; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; margin: 0; padding: 20px;
+        }
+
+        .container { 
+            background: #1a1a1a; padding: 30px; border-radius: 20px; 
+            width: 600px; border: 2px solid #e74c3c; box-shadow: 0 0 40px rgba(231, 76, 60, 0.2);
+            text-align: center;
+        }
+
+        .cards-area { display: flex; justify-content: space-around; margin-bottom: 20px; gap: 20px; }
+        
+        .card {
+            background: linear-gradient(145deg, #2c3e50, #000);
+            border: 4px solid #f1c40f; border-radius: 15px;
+            width: 180px; padding: 15px; position: relative;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card.active { transform: translateY(-15px); box-shadow: 0 0 30px #f1c40f; }
+        .card.dead { filter: grayscale(1) opacity(0.5); transform: rotate(5deg); }
+
+        .card-image { font-size: 60px; margin: 10px 0; }
+        .card-name { font-weight: bold; font-size: 1.2em; color: #f1c40f; margin-bottom: 10px; }
+
+        .hp-bar-bg { background: #333; height: 12px; border-radius: 6px; overflow: hidden; margin: 10px 0; border: 1px solid #000; }
+        .hp-bar-fill { height: 100%; width: 100%; background: #2ecc71; transition: width 0.3s ease; }
+
+        .atk-badge { background: #e74c3c; color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8em; font-weight: bold; }
+
+        .setup-box { display: flex; flex-direction: column; gap: 15px; align-items: center; }
+        .input-row { background: #222; padding: 15px; border-radius: 10px; width: 100%; box-sizing: border-box; text-align: left; }
+        
+        input, select { background: #000; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 5px; margin-top: 5px; }
+        
+        .log { 
+            background: #000; padding: 15px; border-radius: 10px; height: 120px; 
+            overflow-y: auto; font-family: monospace; border: 1px solid #333; margin: 20px 0; text-align: left; font-size: 0.85em;
+        }
+
+        button { 
+            background: #e74c3c; color: white; border: none; padding: 15px 30px; 
+            border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1.1em; width: 100%; transition: 0.2s;
+        }
+        button:hover { background: #ff5e4d; transform: scale(1.02); }
+
+        .winner-msg { color: #f1c40f; font-size: 1.8em; font-weight: bold; animation: pulse 0.8s infinite; margin-top: 10px; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <!-- TELA DE SETUP -->
+    <div id="setup" class="container">
+        <h1 style="color:#e74c3c; margin-top: 0;">⚔️ MONSTER TCG ⚔️</h1>
+        <div class="setup-box">
+            <div class="input-row">
+                <strong>🔵 JOGADOR 1:</strong><br>
+                Nome: <input type="text" id="n1" value="Dragão" style="width:120px">
+                Avatar: 
+                <select id="av1">
+                    <option value="🐉">Dragão</option>
+                    <option value="⚔️">Guerreiro</option>
+                    <option value="🤖">Robô</option>
+                    <option value="🐺">Lobo</option>
+                    <option value="🔥">Elemental</option>
+                </select>
+                HP: <input type="number" id="h1" value="2000" style="width:70px">
+                ATK: <input type="number" id="a1" value="1700" style="width:70px">
+            </div>
+
+            <div class="input-row">
+                <strong>🟠 JOGADOR 2:</strong><br>
+                Nome: <input type="text" id="n2" value="Negro" style="width:120px">
+                Avatar: 
+                <select id="av2">
+                    <option value="💀">Caveira</option>
+                    <option value="👹">Ogro</option>
+                    <option value="🧛">Vampiro</option>
+                    <option value="🦁">Leão</option>
+                    <option value="🐍">Serpente</option>
+                </select>
+                HP: <input type="number" id="h2" value="3000" style="width:70px">
+                ATK: <input type="number" id="a2" value="1800" style="width:70px">
+            </div>
+            <button onclick="iniciarArena()">INICIAR DUELO 🔥</button>
+        </div>
+    </div>
+
+    <!-- ARENA -->
+    <div id="arena" class="container" style="display:none;">
+        <div class="cards-area">
+            <div id="card1" class="card">
+                <div class="card-name" id="disp-n1"></div>
+                <div class="card-image" id="img1"></div>
+                <div class="hp-bar-bg"><div id="bar1" class="hp-bar-fill"></div></div>
+                <div id="hp-txt1" style="font-size: 0.8em; font-weight: bold;"></div>
+                <div style="margin-top:10px"><span class="atk-badge">ATK: <span id="disp-a1"></span></span></div>
+            </div>
+
+            <div id="card2" class="card">
+                <div class="card-name" id="disp-n2"></div>
+                <div class="card-image" id="img2"></div>
+                <div class="hp-bar-bg"><div id="bar2" class="hp-bar-fill"></div></div>
+                <div id="hp-txt2" style="font-size: 0.8em; font-weight: bold;"></div>
+                <div style="margin-top:10px"><span class="atk-badge">ATK: <span id="disp-a2"></span></span></div>
+            </div>
+        </div>
+
+        <div id="log" class="log"></div>
+        
+        <button id="btn-play" onclick="executarTurno()">DESFERIR ATAQUE ⚔️</button>
+        <div id="winner-display" class="winner-msg"></div>
+        <button onclick="location.reload()" style="background:#444; margin-top:15px; padding: 8px; font-size: 0.8em;">NOVO JOGO</button>
+    </div>
+
+    <script>
+        let m1, m2, vezM1 = true, hpMax1, hpMax2;
+
+        function iniciarArena() {
+            m1 = { 
+                nome: document.getElementById('n1').value, 
+                hp: parseInt(document.getElementById('h1').value), 
+                atk: parseInt(document.getElementById('a1').value),
+                avatar: document.getElementById('av1').value
+            };
+            m2 = { 
+                nome: document.getElementById('n2').value, 
+                hp: parseInt(document.getElementById('h2').value), 
+                atk: parseInt(document.getElementById('a2').value),
+                avatar: document.getElementById('av2').value
+            };
+            hpMax1 = m1.hp; hpMax2 = m2.hp;
+
+            if(m1.hp <= 0 || m1.atk <= 0 || m2.hp <= 0) return alert("Valores inválidos!");
+
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('arena').style.display = 'block';
+            
+            document.getElementById('disp-n1').innerText = m1.nome;
+            document.getElementById('disp-a1').innerText = m1.atk;
+            document.getElementById('img1').innerText = m1.avatar;
+
+            document.getElementById('disp-n2').innerText = m2.nome;
+            document.getElementById('disp-a2').innerText = m2.atk;
+            document.getElementById('img2').innerText = m2.avatar;
+            
+            atualizarInterface();
+            document.getElementById('card1').classList.add('active');
+        }
+
+        function atualizarInterface() {
+            const p1 = (m1.hp / hpMax1) * 100;
+            const p2 = (m2.hp / hpMax2) * 100;
+            
+            document.getElementById('bar1').style.width = p1 + "%";
+            document.getElementById('bar2').style.width = p2 + "%";
+            document.getElementById('hp-txt1').innerText = `${m1.hp} / ${hpMax1} HP`;
+            document.getElementById('hp-txt2').innerText = `${m2.hp} / ${hpMax2} HP`;
+
+            if(m1.hp <= 0) document.getElementById('card1').classList.add('dead');
+            if(m2.hp <= 0) document.getElementById('card2').classList.add('dead');
+        }
+
+        function executarTurno() {
+            const log = document.getElementById('log');
+            
+            if (vezM1) {
+                m2.hp = Math.max(0, m2.hp - m1.atk);
+                log.innerHTML += `<div>💥 <b>${m1.nome}</b> atacou causando ${m1.atk} de dano!</div>`;
+                document.getElementById('card1').classList.remove('active');
+                if(m2.hp > 0) document.getElementById('card2').classList.add('active');
+                vezM1 = false;
+            } else {
+                m1.hp = Math.max(0, m1.hp - m2.atk);
+                log.innerHTML += `<div>🔥 <b>${m2.nome}</b> revidou causando ${m2.atk} de dano!</div>`;
+                document.getElementById('card2').classList.remove('active');
+                if(m1.hp > 0) document.getElementById('card1').classList.add('active');
+                vezM1 = true;
+            }
+
+            atualizarInterface();
+            log.scrollTop = log.scrollHeight;
+
+            if (m1.hp <= 0 || m2.hp <= 0) {
+                const win = m1.hp > 0 ? m1.nome : m2.nome;
+                document.getElementById('winner-display').innerText = `🏆 ${win.toUpperCase()} VENCEU!`;
+                document.getElementById('btn-play').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

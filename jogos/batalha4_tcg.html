@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<!-- Batalha de cartas contra o PC -->
+
+<head>
+    <meta charset="UTF-8">
+    <title>batalha de cartas - for_code</title>
+    <style>
+        :root {
+            --p1-color: #3498db;
+            --p2-color: #e67e22;
+            --bg-color: #0d0d0d;
+            --card-bg: linear-gradient(145deg, #1e272e, #000);
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-color);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 10px;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .game-title {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #f1c40f;
+            margin: 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .game-title span {
+            text-transform: lowercase;
+            color: #e74c3c;
+        }
+
+        #start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.98);
+            z-index: 5000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .damage-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: red;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .flash-active {
+            animation: flashAnim 0.3s ease-out;
+        }
+
+        @keyframes flashAnim {
+            0% {
+                opacity: 0.3;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .arena-global {
+            display: flex;
+            gap: 30px;
+            width: 95%;
+            max-width: 1100px;
+            justify-content: center;
+            perspective: 1000px;
+            flex: 1;
+        }
+
+        .player-zone {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hand {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            border: 1px solid #222;
+            min-height: 160px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 2px solid #f1c40f;
+            border-radius: 12px;
+            width: 100px;
+            height: 150px;
+            padding: 8px;
+            cursor: pointer;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .card:hover {
+            transform: translateY(-15px) rotate(3deg);
+            border-color: #fff;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.8);
+        }
+
+        .card.selected {
+            border-color: #2ecc71;
+            box-shadow: 0 0 20px #2ecc71;
+            pointer-events: none;
+        }
+
+        .card.used {
+            opacity: 0.1;
+            filter: grayscale(1);
+            pointer-events: none;
+        }
+
+        .icon {
+            font-size: 45px;
+            margin: 10px 0;
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+        }
+
+        .atk-val {
+            color: #ff4d4d;
+            font-weight: bold;
+            border-top: 1px solid #333;
+            padding-top: 5px;
+            font-size: 1.1em;
+        }
+
+        .status-box {
+            width: 100%;
+            text-align: center;
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 20px;
+            border: 2px solid #333;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .edit-name {
+            background: transparent;
+            border: none;
+            color: #f1c40f;
+            font-size: 1.4em;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+            margin-bottom: 10px;
+            outline: none;
+        }
+
+        .hp-bar {
+            background: #000;
+            height: 16px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 5px 0;
+            border: 1px solid #444;
+        }
+
+        .hp-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            transition: 0.8s;
+        }
+
+        .btn-atk {
+            background: #e74c3c;
+            color: white;
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .btn-atk:disabled {
+            background: #222;
+            color: #555;
+            cursor: not-allowed;
+        }
+
+        .btn-draw {
+            display: none;
+        }
+
+        #narrador {
+            width: 95%;
+            max-width: 1100px;
+            background: #000;
+            color: #f1c40f;
+            padding: 15px;
+            border-radius: 10px;
+            height: 100px;
+            margin-top: 15px;
+            overflow-y: auto;
+            border: 2px solid #333;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        #winner-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.98);
+            z-index: 6000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .trophy {
+            font-size: 150px;
+            animation: bounce 1s infinite alternate;
+            filter: drop-shadow(0 0 20px #f1c40f);
+        }
+
+        @keyframes bounce {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.2);
+            }
+        }
+
+        canvas#fireworks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* --- ESTILOS DO POPUP DE RANKING --- */
+        .btn-ver-confrontos {
+            padding: 10px 30px;
+            cursor: pointer;
+            border-radius: 50px;
+            background: #f1c40f;
+            color: black;
+            font-weight: bold;
+            margin-top: 15px;
+            border: none;
+            z-index: 10;
+        }
+
+        #ranking-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            background: #1a1a1a;
+            border: 2px solid #f1c40f;
+            border-radius: 15px;
+            z-index: 7000;
+            padding: 20px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        .modal-body {
+            max-height: 250px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85em;
+        }
+
+        .close-modal {
+            cursor: pointer;
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 1.5em;
+            line-height: 1;
+        }
+
+        .item-hist {
+            border-bottom: 1px solid #333;
+            padding: 10px 0;
+            text-align: left;
+        }
+
+        .item-hist:last-child {
+            border: none;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div id="start-screen">
+        <h1 class="game-title">batalha de cartas - <span>for_code</span></h1>
+        <button onclick="ativarSons()"
+            style="padding: 20px 50px; font-size: 1.5em; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:10px;">INICIAR
+            ARENA 🔥</button>
+    </div>
+
+    <div id="flash" class="damage-flash"></div>
+
+    <div id="winner-overlay">
+        <canvas id="fireworks"></canvas>
+        <div class="trophy">🏆</div>
+        <h1 id="win-txt" style="color: #f1c40f; font-size: 3.5em; text-align: center; z-index: 10;"></h1>
+        <button onclick="location.reload()"
+            style="padding: 15px 50px; cursor:pointer; border-radius: 50px; background: white; font-weight: bold; z-index: 10; margin-top: 20px;">JOGAR
+            NOVAMENTE</button>
+
+        <!-- Botão para abrir o Ranking em Popup -->
+        <button class="btn-ver-confrontos" onclick="mostrarRanking()">VER RANKING 📊</button>
+    </div>
+
+    <!-- Estrutura do Popup (Modal) -->
+    <div id="ranking-modal">
+        <div class="modal-header">
+            <span style="color: #f1c40f; font-weight: bold;">HISTÓRICO DE DUELOS</span>
+            <span class="close-modal" onclick="fecharRanking()">×</span>
+        </div>
+        <div id="ranking-corpo" class="modal-body"></div>
+    </div>
+
+    <h1 class="game-title">batalha de cartas - <span>for_code</span></h1>
+
+    <div class="arena-global">
+        <div class="player-zone">
+            <button id="draw1" class="btn-draw" onclick="gerarDeck(1)">SORTEAR DECK P1</button>
+            <div id="hand1" class="hand"></div>
+            <div class="status-box">
+                <input type="text" class="edit-name" id="name-p1" value="JOGADOR 1">
+                <div class="hp-bar">
+                    <div id="m-bar1" class="hp-fill"></div>
+                </div>
+                <div id="m-info1" style="color: #888;">HP: 0 / 0 | ATK: 0</div>
+                <button id="atk1" class="btn-atk" onclick="atacar(1)" disabled>ATACAR ⚔️</button>
+            </div>
+        </div>
+
+        <div style="font-size: 2.5em; align-self: center; color: #444; font-weight: bold;">VS</div>
+
+        <div class="player-zone">
+            <button id="draw2" class="btn-draw" onclick="gerarDeck(2)">SORTEAR DECK P2</button>
+            <div id="hand2" class="hand"></div>
+            <div class="status-box">
+                <input type="text" class="edit-name" id="name-p2" value="Mestre_PC">
+                <div class="hp-bar">
+                    <div id="m-bar2" class="hp-fill"></div>
+                </div>
+                <div id="m-info2" style="color: #888;">HP: 0 / 0 | ATK: 0</div>
+                <button id="atk2" class="btn-atk" onclick="atacar(2)" disabled style="display:none">ATACAR ⚔️</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="narrador"></div>
+
+    <script>
+        let audioCtx;
+        let decks = {
+            1: [],
+            2: []
+        };
+        let status = {
+            1: {
+                hp: 0,
+                hpMax: 0,
+                atk: 0,
+                invocou: false
+            },
+            2: {
+                hp: 0,
+                hpMax: 0,
+                atk: 0,
+                invocou: false
+            }
+        };
+        const icons = ["🐉", "🐺", "🤖", "🔥", "💀", "🧛", "⚔️", "🧙"];
+
+        function tocarSom(tipo) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            if (tipo === 'sorteio') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+            } else if (tipo === 'invocar') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+            } else if (tipo === 'ataque') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+            } else if (tipo === 'vitoria') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
+            }
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1);
+        }
+
+        function ativarSons() {
+            // Inicializa o áudio
+            audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+
+            // Fecha a tela inicial
+            document.getElementById('start-screen').style.display = 'none';
+
+            // Pequeno delay de 100ms para garantir que o áudio "acorde" antes de sortear
+            setTimeout(() => {
+                gerarDeck(1);
+                gerarDeck(2);
+                narrar("Arena pronta! Selecione sua primeira carta.");
+            }, 100);
+        }
+
+        function narrar(msg) {
+            const n = document.getElementById('narrador');
+            const p = document.createElement('div');
+            p.style.borderLeft = "3px solid #f1c40f";
+            p.style.paddingLeft = "10px";
+            p.innerHTML = `> ${msg}`;
+            n.prepend(p);
+        }
+
+        function gerarDeck(p) {
+            tocarSom('sorteio');
+            decks[p] = [];
+            for (let i = 0; i < 3; i++) {
+                let hp = Math.floor(Math.random() * 2000) + 500;
+                decks[p].push({
+                    id: `${p}-${i}`,
+                    hp,
+                    hpMax: hp,
+                    atk: Math.floor(hp * 0.45),
+                    icon: icons[Math.floor(Math.random() * icons.length)],
+                    usada: false
+                });
+            }
+            document.getElementById(`draw${p}`).style.visibility = 'hidden';
+            renderHand(p);
+        }
+
+        function renderHand(p) {
+            const handDiv = document.getElementById(`hand${p}`);
+            handDiv.innerHTML = decks[p].map(c => `
+                <div id="c-${c.id}" class="card ${c.usada ? 'used' : ''}" onclick="invocar(${p}, '${c.id}')">
+                    <div style="font-weight:bold; color:#2ecc71;">${c.hp} HP</div>
+                    <div class="icon">${c.icon}</div>
+                    <div class="atk-val">⚔️ ${c.atk}</div>
+                </div>
+            `).join('');
+        }
+
+        function invocar(p, id) {
+            // Se o jogador já selecionou uma carta neste turno, bloqueia
+            if (status[p].invocou) return;
+
+            tocarSom('invocar');
+            const carta = decks[p].find(c => c.id === id);
+
+            // Soma os atributos da carta ao status do jogador
+            status[p].hp += carta.hp;
+            status[p].hpMax += carta.hpMax;
+            status[p].atk += carta.atk;
+            status[p].invocou = true;
+            carta.usada = true;
+
+            // Atualiza o visual da carta
+            const cardElem = document.getElementById(`c-${id}`);
+            cardElem.classList.add('selected', 'used');
+
+            atualizarUI(p);
+
+            // Se você (P1) selecionou, ativa seu botão e faz o PC selecionar a dele
+            if (p === 1) {
+                document.getElementById('atk1').disabled = false;
+                setTimeout(iaEscolherCarta, 400);
+            }
+        }
+
+        function iaEscolherCarta() {
+            // Filtra as cartas do computador (P2) que ainda não foram usadas
+            const disponiveis = decks[2].filter(c => !c.usada);
+
+            if (disponiveis.length > 0) {
+                // Ordena da maior para a menor pelo ATK
+                disponiveis.sort((a, b) => b.atk - a.atk);
+                const melhor = disponiveis[0];
+
+                // Libera o status momentaneamente para o PC poder invocar
+                status[2].invocou = false;
+                invocar(2, melhor.id);
+                narrar("Mestre_PC selecionou uma carta!");
+            }
+        }
+
+        function atualizarUI(p) {
+            const s = status[p];
+            const perc = (s.hp / s.hpMax) * 100;
+            document.getElementById(`m-info${p}`).innerText = `HP: ${s.hp} / ${s.hpMax} | ATK: ${s.atk}`;
+            document.getElementById(`m-bar${p}`).style.width = perc + "%";
+        }
+
+        // FUNÇÃO ATACAR COM LÓGICA DE ATAQUE EXTRA (MORTE SÚBITA)
+        function atacar(pAtacante) {
+            const pDefensor = pAtacante === 1 ? 2 : 1;
+
+            // Toca som e efeito visual
+            tocarSom('ataque');
+            document.getElementById('flash').classList.add('flash-active');
+            setTimeout(() => document.getElementById('flash').classList.remove('flash-active'), 300);
+
+            // Aplica o dano
+            status[pDefensor].hp = Math.max(0, status[pDefensor].hp - status[pAtacante].atk);
+
+            // IMPORTANTE: Libera o status de invocação para permitir o próximo ataque
+            status[pAtacante].invocou = false;
+
+            atualizarUI(pDefensor);
+            narrar(`${pAtacante === 1 ? 'Você' : 'Mestre_PC'} atacou com força total!`);
+
+            // 1. Verifica se alguém morreu
+            if (status[pDefensor].hp <= 0) {
+                finalizarJogo(pAtacante);
+                return;
+            }
+
+            // 2. Verifica se as cartas acabaram
+            const cartasRestantesP1 = Array.from(document.querySelectorAll('#hand1 .card:not(.used)')).length;
+
+            if (pAtacante === 1) {
+                // Turno do jogador acabou, Mestre_PC ataca em seguida
+                document.getElementById('atk1').disabled = true;
+                setTimeout(() => atacar(2), 1000);
+            } else {
+                // Se o Mestre_PC acabou de atacar e não há mais cartas
+                if (cartasRestantesP1 === 0) {
+                    narrar("🔥 MORTE SÚBITA! Use seu poder acumulado!");
+                    setTimeout(() => {
+                        // FORÇA A LIBERAÇÃO: Ignora a necessidade de selecionar carta
+                        status[1].invocou = false;
+                        status[2].invocou = false;
+                        const btn = document.getElementById('atk1');
+                        btn.disabled = false;
+                        btn.innerHTML = "GOLPE FINAL! ⚡";
+                        btn.style.background = "linear-gradient(to bottom, #f1c40f, #e67e22)";
+                    }, 800);
+                } else {
+                    narrar("Sua vez! Selecione sua próxima carta.");
+                }
+            }
+        }
+
+        function iaMestrePC() {
+            // 1. Filtra no array de dados (decks[2]) as cartas que não foram usadas
+            const cartasRestantes = decks[2].filter(c => !c.usada);
+
+            if (cartasRestantes.length > 0) {
+                // 2. Ordena para pegar o maior ataque
+                cartasRestantes.sort((a, b) => b.atk - a.atk);
+
+                const melhorCarta = cartasRestantes[0];
+
+                // 3. AQUI ESTÁ A CORREÇÃO: Reseta o status do PC para permitir a nova seleção
+                status[2].invocou = false;
+
+                // 4. Chama a função de invocar usando o ID dos dados (ex: "2-0")
+                invocar(2, melhorCarta.id);
+
+                // 5. Ataca após o usuário ver a seleção
+                setTimeout(() => {
+                    atacar(2);
+                }, 1000);
+            } else {
+                narrar("Mestre_PC está sem cartas!");
+            }
+        }
+
+        function iaEscolherCarta() {
+            const cartasRestantes = decks[2].filter(c => !c.usada);
+            if (cartasRestantes.length > 0) {
+                // Ordena por maior ATK
+                cartasRestantes.sort((a, b) => b.atk - a.atk);
+                const melhor = cartasRestantes[0];
+
+                // Reseta o status de invocação do PC para permitir a escolha automática
+                status[2].invocou = false;
+                invocar(2, melhor.id);
+                narrar("Mestre_PC selecionou uma carta!");
+            }
+        }
+
+        function finalizarJogo(vencedorId) {
+            tocarSom('vitoria');
+            const nomeP1 = document.getElementById('name-p1').value;
+            const nomeP2 = document.getElementById('name-p2').value;
+            const nomeVencedor = document.getElementById(`name-p${vencedorId}`).value;
+
+            // Salva no LocalStorage
+            salvarConfronto(nomeP1, nomeP2, nomeVencedor);
+
+            document.getElementById('win-txt').innerText = `${nomeVencedor}\nVENCEU O DUELO!`;
+            document.getElementById('winner-overlay').style.display = 'flex';
+            lancarFogos();
+        }
+
+        function lancarFogos() {
+            const canvas = document.getElementById('fireworks');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            let particles = [];
+
+            function createParticle() {
+                return {
+                    x: Math.random() * canvas.width,
+                    y: canvas.height,
+                    vx: Math.random() * 4 - 2,
+                    vy: Math.random() * -10 - 10,
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    size: Math.random() * 3 + 2
+                };
+            }
+
+            function loop() {
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                if (particles.length < 50) particles.push(createParticle());
+                particles.forEach((p, i) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.2;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    if (p.y > canvas.height) particles.splice(i, 1);
+                });
+                requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        // Salva o duelo na memória do navegador
+        function salvarConfronto(p1, p2, vencedor) {
+            let historico = JSON.parse(localStorage.getItem('confrontos_cards')) || [];
+            const novoJogo = {
+                data: new Date().toLocaleString('pt-BR'),
+                duelo: `${p1} VS ${p2}`,
+                ganhador: vencedor
+            };
+            historico.unshift(novoJogo);
+            localStorage.setItem('confrontos_cards', JSON.stringify(historico.slice(0, 10)));
+        }
+
+        // Abre o Popup de Ranking
+        function mostrarRanking() {
+            const corpo = document.getElementById('ranking-corpo');
+            const historico = JSON.parse(localStorage.getItem('confrontos_cards')) || [];
+            document.getElementById('ranking-modal').style.display = 'block';
+            if (historico.length === 0) {
+                corpo.innerHTML = "<div style='padding:10px;'>Nenhum confronto salvo.</div>";
+                return;
+            }
+            corpo.innerHTML = historico.map(h => `
+                <div class="item-hist">
+                    <small style="color: #888;">${h.data}</small><br>
+                    <strong style="color: #fff;">${h.duelo}</strong><br>
+                    <span style="color:#2ecc71">🏆 Ganhador: ${h.ganhador}</span>
+                </div>
+            `).join('');
+        }
+
+        // Fecha o Popup
+        function fecharRanking() {
+            document.getElementById('ranking-modal').style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>
