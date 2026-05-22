@@ -74,7 +74,8 @@
             border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase;
         }
         .btn-atk:disabled { background: #222; color: #555; cursor: not-allowed; }
-        .btn-draw { background: #f1c40f; color: black; width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
+        
+        .btn-draw { display: none; }
 
         #narrador {
             width: 95%; max-width: 1100px; background: #000; color: #f1c40f;
@@ -82,7 +83,6 @@
             overflow-y: auto; border: 2px solid #333; font-family: 'Consolas', monospace; font-size: 0.9em;
         }
 
-        /* Vitória e Fogos */
         #winner-overlay {
             display: none; position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.98); z-index: 6000; flex-direction: column; align-items: center; justify-content: center;
@@ -91,7 +91,27 @@
         @keyframes bounce { from { transform: scale(1); } to { transform: scale(1.2); } }
         
         canvas#fireworks { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+
+        /* --- ESTILOS DO POPUP DE RANKING --- */
+        .btn-ver-confrontos {
+            padding: 10px 30px; cursor: pointer; border-radius: 50px; background: #f1c40f;
+            color: black; font-weight: bold; margin-top: 15px; border: none; z-index: 10;
+        }
+
+        #ranking-modal {
+            display: none; position: fixed; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); width: 320px; 
+            background: #1a1a1a; border: 2px solid #f1c40f; 
+            border-radius: 15px; z-index: 7000; padding: 20px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+        }
+        .modal-header { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 10px; }
+        .modal-body { max-height: 250px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 0.85em; }
+        .close-modal { cursor: pointer; color: #e74c3c; font-weight: bold; font-size: 1.5em; line-height: 1; }
+        .item-hist { border-bottom: 1px solid #333; padding: 10px 0; text-align: left; }
+        .item-hist:last-child { border: none; }
     </style>
+
 </head>
 <body>
 
@@ -107,6 +127,18 @@
         <div class="trophy">🏆</div>
         <h1 id="win-txt" style="color: #f1c40f; font-size: 3.5em; text-align: center; z-index: 10;"></h1>
         <button onclick="location.reload()" style="padding: 15px 50px; cursor:pointer; border-radius: 50px; background: white; font-weight: bold; z-index: 10; margin-top: 20px;">JOGAR NOVAMENTE</button>
+        
+        <!-- Botão para abrir o Ranking em Popup -->
+        <button class="btn-ver-confrontos" onclick="mostrarRanking()">VER RANKING 📊</button>
+    </div>
+
+    <!-- Estrutura do Popup (Modal) -->
+    <div id="ranking-modal">
+        <div class="modal-header">
+            <span style="color: #f1c40f; font-weight: bold;">HISTÓRICO DE DUELOS</span>
+            <span class="close-modal" onclick="fecharRanking()">×</span>
+        </div>
+        <div id="ranking-corpo" class="modal-body"></div>
     </div>
 
     <h1 class="game-title">batalha de cartas - <span>for_code</span></h1>
@@ -129,10 +161,10 @@
             <button id="draw2" class="btn-draw" onclick="gerarDeck(2)">SORTEAR DECK P2</button>
             <div id="hand2" class="hand"></div>
             <div class="status-box">
-                <input type="text" class="edit-name" id="name-p2" value="JOGADOR 2">
+                <input type="text" class="edit-name" id="name-p2" value="Mestre_PC">
                 <div class="hp-bar"><div id="m-bar2" class="hp-fill"></div></div>
                 <div id="m-info2" style="color: #888;">HP: 0 / 0 | ATK: 0</div>
-                <button id="atk2" class="btn-atk" onclick="atacar(2)" disabled>ATACAR ⚔️</button>
+                <button id="atk2" class="btn-atk" onclick="atacar(2)" disabled style="display:none">ATACAR ⚔️</button>
             </div>
         </div>
     </div>
@@ -168,13 +200,18 @@
         }
 
         function ativarSons() {
+            // Inicializa o áudio
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Fecha a tela inicial
             document.getElementById('start-screen').style.display = 'none';
-
-            // 2000 milissegundos = 2 segundos de atraso
+            
+            // Pequeno delay de 100ms para garantir que o áudio "acorde" antes de sortear
             setTimeout(() => {
-                narrar("Sistema de áudio e arena prontos!");
-            }, 2000); 
+                gerarDeck(1);
+                gerarDeck(2);
+                narrar("Arena pronta! Selecione sua primeira carta.");
+            }, 100);
         }
 
         function narrar(msg) {
@@ -207,14 +244,46 @@
         }
 
         function invocar(p, id) {
-            if(status[p].invocou) return narrar("Aguarde o próximo turno!");
+            // Se o jogador já selecionou uma carta neste turno, bloqueia
+            if(status[p].invocou) return;
+
             tocarSom('invocar');
             const carta = decks[p].find(c => c.id === id);
-            status[p].hp += carta.hp; status[p].hpMax += carta.hpMax; status[p].atk += carta.atk;
-            status[p].invocou = true; carta.usada = true;
-            document.getElementById(`c-${id}`).classList.add('selected');
-            document.getElementById(`atk${p}`).disabled = false;
+            
+            // Soma os atributos da carta ao status do jogador
+            status[p].hp += carta.hp; 
+            status[p].hpMax += carta.hpMax; 
+            status[p].atk += carta.atk;
+            status[p].invocou = true; 
+            carta.usada = true;
+            
+            // Atualiza o visual da carta
+            const cardElem = document.getElementById(`c-${id}`);
+            cardElem.classList.add('selected', 'used');
+            
             atualizarUI(p);
+
+            // Se você (P1) selecionou, ativa seu botão e faz o PC selecionar a dele
+            if (p === 1) {
+                document.getElementById('atk1').disabled = false;
+                setTimeout(iaEscolherCarta, 400);
+            }
+        }
+
+        function iaEscolherCarta() {
+            // Filtra as cartas do computador (P2) que ainda não foram usadas
+            const disponiveis = decks[2].filter(c => !c.usada);
+            
+            if (disponiveis.length > 0) {
+                // Ordena da maior para a menor pelo ATK
+                disponiveis.sort((a, b) => b.atk - a.atk);
+                const melhor = disponiveis[0];
+                
+                // Libera o status momentaneamente para o PC poder invocar
+                status[2].invocou = false;
+                invocar(2, melhor.id);
+                narrar("Mestre_PC selecionou uma carta!");
+            }
         }
 
         function atualizarUI(p) {
@@ -223,21 +292,104 @@
             document.getElementById(`m-bar${p}`).style.width = perc + "%";
         }
 
+        // FUNÇÃO ATACAR COM LÓGICA DE ATAQUE EXTRA (MORTE SÚBITA)
         function atacar(pAtacante) {
             const pDefensor = pAtacante === 1 ? 2 : 1;
-            if (status[pDefensor].hpMax === 0) return narrar("Inimigo sem defesa!");
+            
+            // Toca som e efeito visual
             tocarSom('ataque');
             document.getElementById('flash').classList.add('flash-active');
             setTimeout(() => document.getElementById('flash').classList.remove('flash-active'), 300);
+            
+            // Aplica o dano
             status[pDefensor].hp = Math.max(0, status[pDefensor].hp - status[pAtacante].atk);
+            
+            // IMPORTANTE: Libera o status de invocação para permitir o próximo ataque
             status[pAtacante].invocou = false;
+            
             atualizarUI(pDefensor);
-            if(status[pDefensor].hp <= 0) finalizarJogo(pAtacante);
+            narrar(`${pAtacante === 1 ? 'Você' : 'Mestre_PC'} atacou com força total!`);
+            
+            // 1. Verifica se alguém morreu
+            if(status[pDefensor].hp <= 0) {
+                finalizarJogo(pAtacante);
+                return;
+            }
+
+            // 2. Verifica se as cartas acabaram
+            const cartasRestantesP1 = Array.from(document.querySelectorAll('#hand1 .card:not(.used)')).length;
+
+            if (pAtacante === 1) {
+                // Turno do jogador acabou, Mestre_PC ataca em seguida
+                document.getElementById('atk1').disabled = true;
+                setTimeout(() => atacar(2), 1000); 
+            } else {
+                // Se o Mestre_PC acabou de atacar e não há mais cartas
+                if (cartasRestantesP1 === 0) {
+                    narrar("🔥 MORTE SÚBITA! Use seu poder acumulado!");
+                    setTimeout(() => {
+                        // FORÇA A LIBERAÇÃO: Ignora a necessidade de selecionar carta
+                        status[1].invocou = false; 
+                        status[2].invocou = false;
+                        const btn = document.getElementById('atk1');
+                        btn.disabled = false;
+                        btn.innerHTML = "GOLPE FINAL! ⚡";
+                        btn.style.background = "linear-gradient(to bottom, #f1c40f, #e67e22)";
+                    }, 800);
+                } else {
+                    narrar("Sua vez! Selecione sua próxima carta.");
+                }
+            }
+        }
+
+        function iaMestrePC() {
+            // 1. Filtra no array de dados (decks[2]) as cartas que não foram usadas
+            const cartasRestantes = decks[2].filter(c => !c.usada);
+
+            if (cartasRestantes.length > 0) {
+                // 2. Ordena para pegar o maior ataque
+                cartasRestantes.sort((a, b) => b.atk - a.atk);
+
+                const melhorCarta = cartasRestantes[0];
+
+                // 3. AQUI ESTÁ A CORREÇÃO: Reseta o status do PC para permitir a nova seleção
+                status[2].invocou = false;
+
+                // 4. Chama a função de invocar usando o ID dos dados (ex: "2-0")
+                invocar(2, melhorCarta.id);
+
+                // 5. Ataca após o usuário ver a seleção
+                setTimeout(() => {
+                    atacar(2);
+                }, 1000);
+            } else {
+                narrar("Mestre_PC está sem cartas!");
+            }
+        }
+
+        function iaEscolherCarta() {
+            const cartasRestantes = decks[2].filter(c => !c.usada);
+            if (cartasRestantes.length > 0) {
+                // Ordena por maior ATK
+                cartasRestantes.sort((a, b) => b.atk - a.atk);
+                const melhor = cartasRestantes[0];
+                
+                // Reseta o status de invocação do PC para permitir a escolha automática
+                status[2].invocou = false; 
+                invocar(2, melhor.id);
+                narrar("Mestre_PC selecionou uma carta!");
+            }
         }
 
         function finalizarJogo(vencedorId) {
             tocarSom('vitoria');
+            const nomeP1 = document.getElementById('name-p1').value;
+            const nomeP2 = document.getElementById('name-p2').value;
             const nomeVencedor = document.getElementById(`name-p${vencedorId}`).value;
+            
+            // Salva no LocalStorage
+            salvarConfronto(nomeP1, nomeP2, nomeVencedor);
+
             document.getElementById('win-txt').innerText = `${nomeVencedor}\nVENCEU O DUELO!`;
             document.getElementById('winner-overlay').style.display = 'flex';
             lancarFogos();
@@ -266,6 +418,41 @@
                 requestAnimationFrame(loop);
             }
             loop();
+        }
+        
+         // Salva o duelo na memória do navegador
+        function salvarConfronto(p1, p2, vencedor) {
+            let historico = JSON.parse(localStorage.getItem('confrontos_cards')) || [];
+            const novoJogo = {
+                data: new Date().toLocaleString('pt-BR'),
+                duelo: `${p1} VS ${p2}`,
+                ganhador: vencedor
+            };
+            historico.unshift(novoJogo);
+            localStorage.setItem('confrontos_cards', JSON.stringify(historico.slice(0, 10)));
+        }
+
+        // Abre o Popup de Ranking
+        function mostrarRanking() {
+            const corpo = document.getElementById('ranking-corpo');
+            const historico = JSON.parse(localStorage.getItem('confrontos_cards')) || [];
+            document.getElementById('ranking-modal').style.display = 'block';
+            if (historico.length === 0) {
+                corpo.innerHTML = "<div style='padding:10px;'>Nenhum confronto salvo.</div>";
+                return;
+            }
+            corpo.innerHTML = historico.map(h => `
+                <div class="item-hist">
+                    <small style="color: #888;">${h.data}</small><br>
+                    <strong style="color: #fff;">${h.duelo}</strong><br>
+                    <span style="color:#2ecc71">🏆 Ganhador: ${h.ganhador}</span>
+                </div>
+            `).join('');
+        }
+
+        // Fecha o Popup
+        function fecharRanking() {
+            document.getElementById('ranking-modal').style.display = 'none';
         }
     </script>
 </body>
