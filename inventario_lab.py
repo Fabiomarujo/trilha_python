@@ -16,7 +16,7 @@ print("--- RELATÓRIO DE INVENTÁRIO ---")
 for nome, lote, valor in inventario:
     print(f"Frasco do Lote: {lote} | Reagente: {nome:15} | Pureza: {valor}%")
 
-# 4. Filtragem 
+# 4. Filtragem por Critério de Qualidade (List Comprehension)
 lotes_aprovados = [lote for nome, lote, valor in inventario if valor >= 98.0]
 
 print(f"\n--- LOTES APROVADOS (PUREZA >= 98%) ---")
