@@ -11,7 +11,7 @@ print(f"Compostos únicos: {reagentes_unicos}\n")
 # 2. Estruturação do Inventário, unindo lista com ZIP
 inventario = list(zip(reagentes, lotes, purezas))
 
-# 3. Geração de Relatório 
+# 3. Geração de Relatório (Unpacking)
 print("--- RELATÓRIO DE INVENTÁRIO ---")
 for nome, lote, valor in inventario:
     print(f"Frasco do Lote: {lote} | Reagente: {nome:15} | Pureza: {valor}%")
