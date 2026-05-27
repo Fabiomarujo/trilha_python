@@ -8,7 +8,7 @@ reagentes_unicos = set(reagentes)
 print(f"Total de reagentes diferentes: {len(reagentes_unicos)}")
 print(f"Compostos únicos: {reagentes_unicos}\n")
 
-# 2. Estruturação 
+# 2. Estruturação do Inventário, unindo lista com ZIP
 inventario = list(zip(reagentes, lotes, purezas))
 
 # 3. Geração de Relatório 
